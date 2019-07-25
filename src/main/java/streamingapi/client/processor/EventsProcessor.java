@@ -5,7 +5,9 @@ import java.util.List;
 import streamingapi.client.model.Event;
 
 /**
- * Events processor.
+ * Events processor used as a callback after the events are received.
+ *
+ * @author dancojocaru
  */
 public interface EventsProcessor {
 

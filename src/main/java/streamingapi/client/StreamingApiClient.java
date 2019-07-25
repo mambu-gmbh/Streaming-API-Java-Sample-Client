@@ -22,16 +22,31 @@ import com.google.gson.Gson;
 
 import streamingapi.client.exception.CommitCursorException;
 import streamingapi.client.exception.SubscriptionException;
+import streamingapi.client.http.HttpClient;
+import streamingapi.client.http.Response;
 import streamingapi.client.model.Batch;
 import streamingapi.client.model.Cursor;
 import streamingapi.client.model.CursorWrapper;
 import streamingapi.client.model.Subscription;
 import streamingapi.client.processor.EventsProcessor;
-import streamingapi.client.utils.HttpClient;
-import streamingapi.client.utils.Response;
 
 /**
  * Client in charge with streaming api operations.
+ * <ul>
+ * <li>
+ * Create subscriptions: The subscription is needed to be able to consume events from EventTypes.
+ * </li>
+ * <li>
+ * Consume events: Starts a new stream for reading events from this subscription. The data will be
+ * automatically rebalanced between streams of one subscription.
+ * </li>
+ * <li>
+ * Commit cursor:  After a batched is processed the cursor is committed. The commit uses the endpoint
+ * for committing offsets of the subscription.
+ * </li>
+ * </ul>
+ *
+ * @author dancojocaru
  */
 public class StreamingApiClient {
 
@@ -51,6 +66,11 @@ public class StreamingApiClient {
 
 	private EventsProcessor processor;
 
+	/**
+	 * @param client    Http client used to make http requests.
+	 * @param gson      Gson instance used to serialize/deserialize request and responses.
+	 * @param processor A processor that handles the received events when listening to a stream.
+	 */
 	public StreamingApiClient(HttpClient client, Gson gson, EventsProcessor processor) {
 
 		this.client = client;
@@ -61,8 +81,8 @@ public class StreamingApiClient {
 	/**
 	 * Create subscription
 	 *
-	 * @param subscription    Subscription to create
-	 * @param streamingApiKey Streaming api key
+	 * @param subscription    Subscription to create.
+	 * @param streamingApiKey Streaming api key used to for authentication.
 	 * @return created subscription
 	 */
 	public Subscription createSubscription(Subscription subscription, String streamingApiKey) throws IOException {
@@ -76,10 +96,10 @@ public class StreamingApiClient {
 
 
 	/**
-	 * Consume events of based on a subscription
+	 * Consume events of based on a subscription.
 	 *
 	 * @param subscriptionId  subscription id
-	 * @param streamingApiKey streaming api key
+	 * @param streamingApiKey Streaming api key used to for authentication.
 	 */
 	public void consumeEvents(String subscriptionId, String streamingApiKey) throws Exception {
 
@@ -98,7 +118,7 @@ public class StreamingApiClient {
 
 					processor.process(batch.getEvents());
 					Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
-					if (response.getStatusCode() != SC_NO_CONTENT && response.getStatusCode() != SC_OK) {
+					if (isCommitCursorSuccessful(response)) {
 						throw new CommitCursorException("Error while committing cursor.");
 					}
 					out.println("Cursor committed. Response status code: " + response.getStatusCode());
@@ -106,6 +126,7 @@ public class StreamingApiClient {
 			}
 		}
 	}
+
 
 	private URLConnection createConnection(String subscriptionId, String streamingApiKey) throws IOException {
 
@@ -159,9 +180,19 @@ public class StreamingApiClient {
 	private Subscription getSubscription(Response response) throws SubscriptionException {
 
 		int statusCode = response.getStatusCode();
-		if (statusCode != SC_OK && statusCode != SC_CREATED) {
+		if (isCreateSubscriptionSuccessful(statusCode)) {
 			throw new SubscriptionException(response.getResponse());
 		}
 		return gson.fromJson(response.getResponse(), Subscription.class);
+	}
+
+	private boolean isCommitCursorSuccessful(Response response) {
+
+		return response.getStatusCode() != SC_NO_CONTENT && response.getStatusCode() != SC_OK;
+	}
+
+	private boolean isCreateSubscriptionSuccessful(int statusCode) {
+
+		return statusCode != SC_OK && statusCode != SC_CREATED;
 	}
 }

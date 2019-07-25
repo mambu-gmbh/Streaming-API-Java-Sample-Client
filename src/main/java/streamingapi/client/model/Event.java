@@ -2,6 +2,8 @@ package streamingapi.client.model;
 
 /**
  * Model for streaming events.
+ *
+ * @author dancojocaru
  */
 public class Event {
 

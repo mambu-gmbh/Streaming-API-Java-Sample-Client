@@ -4,6 +4,8 @@ import java.util.List;
 
 /**
  * Model for streaming cursor wrapper.
+ *
+ * @author dancojocaru
  */
 public class CursorWrapper {
 

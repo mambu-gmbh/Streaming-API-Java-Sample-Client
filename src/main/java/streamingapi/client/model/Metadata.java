@@ -1,7 +1,9 @@
 package streamingapi.client.model;
 
 /**
- * Model for metadata.
+ * Model for metadata of an event.
+ *
+ * @author dancojocaru
  */
 public class Metadata {
 

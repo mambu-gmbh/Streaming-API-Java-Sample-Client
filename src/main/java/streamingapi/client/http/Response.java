@@ -1,7 +1,9 @@
-package streamingapi.client.utils;
+package streamingapi.client.http;
 
 /**
  * Http response wrapper.
+ *
+ * @author dancojocaru
  */
 public class Response {
 

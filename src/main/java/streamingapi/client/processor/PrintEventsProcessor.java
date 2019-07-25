@@ -8,6 +8,8 @@ import streamingapi.client.model.Event;
 
 /**
  * Processor that can print events.
+ *
+ * @author dancojocaru
  */
 public class PrintEventsProcessor implements EventsProcessor {
 

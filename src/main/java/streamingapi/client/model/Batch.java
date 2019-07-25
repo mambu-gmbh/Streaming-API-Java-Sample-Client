@@ -3,7 +3,9 @@ package streamingapi.client.model;
 import java.util.List;
 
 /**
- * Model for a streaming batch.
+ * Model for a streaming batch of events received by the client
+ *
+ * @author dancojocaru
  */
 public class Batch {
 
