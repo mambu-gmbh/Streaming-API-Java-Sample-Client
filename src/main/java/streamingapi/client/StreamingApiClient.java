@@ -118,7 +118,7 @@ public class StreamingApiClient {
 
 					processor.process(batch.getEvents());
 					Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
-					if (isCommitCursorSuccessful(response)) {
+					if (!isCommitCursorSuccessful(response)) {
 						throw new CommitCursorException("Error while committing cursor.");
 					}
 					out.println("Cursor committed. Response status code: " + response.getStatusCode());
@@ -179,8 +179,7 @@ public class StreamingApiClient {
 
 	private Subscription getSubscription(Response response) throws SubscriptionException {
 
-		int statusCode = response.getStatusCode();
-		if (isCreateSubscriptionSuccessful(statusCode)) {
+		if (!isCreateSubscriptionSuccessful(response)) {
 			throw new SubscriptionException(response.getResponse());
 		}
 		return gson.fromJson(response.getResponse(), Subscription.class);
@@ -188,11 +187,11 @@ public class StreamingApiClient {
 
 	private boolean isCommitCursorSuccessful(Response response) {
 
-		return response.getStatusCode() != SC_NO_CONTENT && response.getStatusCode() != SC_OK;
+		return response.getStatusCode() == SC_NO_CONTENT || response.getStatusCode() == SC_OK;
 	}
 
-	private boolean isCreateSubscriptionSuccessful(int statusCode) {
+	private boolean isCreateSubscriptionSuccessful(Response response) {
 
-		return statusCode != SC_OK && statusCode != SC_CREATED;
+		return response.getStatusCode() == SC_OK || response.getStatusCode() == SC_CREATED;
 	}
 }
