@@ -1,7 +1,9 @@
 package streamingapi.client.model;
 
 /**
- * Model for streaming cursor.
+ * Model for streaming cursor that contains data about the offset of the events.
+ *
+ * @author dancojocaru
  */
 public class Cursor {
 

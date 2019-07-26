@@ -4,6 +4,8 @@ import java.io.IOException;
 
 /**
  * Occurs while committing a cursor.
+ *
+ * @author dancojocaru
  */
 public class CommitCursorException extends IOException {
 

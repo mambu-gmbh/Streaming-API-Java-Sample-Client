@@ -20,9 +20,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import streamingapi.client.exception.SubscriptionException;
+import streamingapi.client.http.HttpClient;
 import streamingapi.client.model.Subscription;
 import streamingapi.client.processor.PrintEventsProcessor;
-import streamingapi.client.utils.HttpClient;
 
 public class StreamingApiClientShould {
 

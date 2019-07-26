@@ -1,4 +1,4 @@
-package streamingapi.client.utils;
+package streamingapi.client.http;
 
 import java.io.IOException;
 
@@ -10,6 +10,8 @@ import org.apache.http.util.EntityUtils;
 
 /**
  * Http client wrapper that handles the execution of the provided request.
+ *
+ * @author dancojocaru
  */
 public class HttpClient {
 

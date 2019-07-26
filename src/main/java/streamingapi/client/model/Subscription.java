@@ -4,6 +4,8 @@ import java.util.List;
 
 /**
  * Model holding information needed for creating a subscription.
+ *
+ * @author dancojocaru
  */
 public class Subscription {
 
