@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.logging.Logger;
 
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -50,15 +51,21 @@ import streamingapi.client.processor.EventsProcessor;
  */
 public class StreamingApiClient {
 
-	String MAMBU_ENDPOINT = "http://demo_tenant.mambuonline.com:8000";
-	String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
-	String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=1&batch_limit=1";
-	String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
-	String CONTENT_TYPE = "Content-Type";
-	String CONTENT_TYPE_VALUE = "application/json";
+	private final static Logger LOGGER = Logger.getLogger(StreamingApiClient.class.getName());
 
-	String API_KEY = "apikey";
-	String MAMBU_STREAM_ID_HEADER_FIELD = "X-Mambu-StreamId";
+	private static final int TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS = 2000;
+	private static final String LOST_CONNECTION_TO_STREAMING_API_MESSAGE = "Lost connection to streaming api.";
+	private static final String TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE = "Trying to reinitialize connection to streaming api.";
+
+	private String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
+	private String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
+	private String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=1&batch_limit=1";
+	private String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
+	private String CONTENT_TYPE = "Content-Type";
+	private String CONTENT_TYPE_VALUE = "application/json";
+
+	private String API_KEY = "apikey";
+	private String MAMBU_STREAM_ID_HEADER_FIELD = "X-Mambu-StreamId";
 
 	private Gson gson;
 
@@ -66,16 +73,20 @@ public class StreamingApiClient {
 
 	private EventsProcessor processor;
 
+	private StreamMonitor monitor;
+
 	/**
 	 * @param client    Http client used to make http requests.
 	 * @param gson      Gson instance used to serialize/deserialize request and responses.
 	 * @param processor A processor that handles the received events when listening to a stream.
+	 * @param monitor   execution monitor
 	 */
-	public StreamingApiClient(HttpClient client, Gson gson, EventsProcessor processor) {
+	public StreamingApiClient(HttpClient client, Gson gson, EventsProcessor processor, StreamMonitor monitor) {
 
 		this.client = client;
 		this.gson = gson;
 		this.processor = processor;
+		this.monitor = monitor;
 	}
 
 	/**
@@ -97,33 +108,43 @@ public class StreamingApiClient {
 
 	/**
 	 * Consume events of based on a subscription.
+	 * When the connection to streaming api is lost, the connection is reinitialized if the monitor approves.
+	 * Info: the connection to streaming api can be lost when the streaming api is restarted during the deployment process.
 	 *
 	 * @param subscriptionId  subscription id
 	 * @param streamingApiKey Streaming api key used to for authentication.
 	 */
 	public void consumeEvents(String subscriptionId, String streamingApiKey) throws Exception {
 
-		URLConnection connection = createConnection(subscriptionId, streamingApiKey);
-		String streamId = connection.getHeaderField(MAMBU_STREAM_ID_HEADER_FIELD);
+		while (monitor.shouldContinue()) {
+			try {
+				URLConnection connection = createConnection(subscriptionId, streamingApiKey);
+				String streamId = connection.getHeaderField(MAMBU_STREAM_ID_HEADER_FIELD);
 
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+				try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
 
-			String inputLine;
+					String inputLine;
 
-			while ((inputLine = reader.readLine()) != null) {
+					while ((inputLine = reader.readLine()) != null) {
 
-				Batch batch = gson.fromJson(inputLine, Batch.class);
+						Batch batch = gson.fromJson(inputLine, Batch.class);
 
-				if (nonNull(batch) && nonNull(batch.getEvents())) {
+						if (nonNull(batch) && nonNull(batch.getEvents())) {
 
-					processor.process(batch.getEvents());
-					Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
-					if (!isCommitCursorSuccessful(response)) {
-						throw new CommitCursorException("Error while committing cursor.");
+							processor.process(batch.getEvents());
+							Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
+							if (!isCommitCursorSuccessful(response)) {
+								throw new CommitCursorException("Error while committing cursor.");
+							}
+							out.println("Cursor committed. Response status code: " + response.getStatusCode());
+						}
 					}
-					out.println("Cursor committed. Response status code: " + response.getStatusCode());
 				}
+			} catch (Exception e) {
+				LOGGER.warning(LOST_CONNECTION_TO_STREAMING_API_MESSAGE);
+				Thread.sleep(TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS);
 			}
+			LOGGER.warning(TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE);
 		}
 	}
 
