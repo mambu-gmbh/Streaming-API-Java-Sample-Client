@@ -26,10 +26,10 @@ import streamingapi.client.processor.PrintEventsProcessor;
 
 public class StreamingApiClientShould {
 
-	public static final String TEST_APPLICATION_NAME = "testApplication";
-	public static final String STREAMING_API_KEY = "bmFqAxsQLUSQfOI7I2EHXtDPfeofJd3X";
-	public static final String CLIENT_CREATED_TOPIC = "mrn.event.demo_tenant.streamingapi.client_created";
-	public static final String DATA_ACCESS_STATE_CHANGED_TOPIC = "mrn.event.demo_tenant.streamingapi.data_access_state_changed";
+	private static final String TEST_APPLICATION_NAME = "testApplication";
+	private static final String STREAMING_API_KEY = "kZvwSoJAxBZrx8S5HnXCw9zJ6oG87t0Q";
+	private static final String CLIENT_CREATED_TOPIC = "mrn.event.demo_tenant.streamingapi.client_created";
+	private static final String DATA_ACCESS_STATE_CHANGED_TOPIC = "mrn.event.demo_tenant.streamingapi.data_access_state_changed";
 
 	private Gson gson;
 
@@ -39,6 +39,8 @@ public class StreamingApiClientShould {
 
 	private PrintEventsProcessor processor;
 
+	private StreamMonitor monitor;
+
 	@Before
 	public void setup() {
 
@@ -47,7 +49,8 @@ public class StreamingApiClientShould {
 				.create();
 		httpClient = new HttpClient();
 		processor = new PrintEventsProcessor();
-		client = new StreamingApiClient(httpClient, gson, processor);
+		monitor = new StreamMonitor();
+		client = new StreamingApiClient(httpClient, gson, processor, monitor);
 	}
 
 	@Test
