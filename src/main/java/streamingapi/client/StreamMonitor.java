@@ -1,7 +1,7 @@
 package streamingapi.client;
 
 /**
- * Monitor used stop the execution or to check if the execution should continue.
+ * Monitor used to stop the execution or to check if the execution should continue.
  *
  * @author dancojocaru
  */
@@ -11,9 +11,9 @@ public class StreamMonitor {
 
 	/**
 	 * Stops the monitored execution
-	 * {@code false} represents
 	 */
 	public void stopExecution() {
+
 		this.isActive = false;
 	}
 
@@ -23,6 +23,7 @@ public class StreamMonitor {
 	 * @return The monitor status.
 	 */
 	public boolean shouldContinue() {
+
 		return isActive;
 	}
 }

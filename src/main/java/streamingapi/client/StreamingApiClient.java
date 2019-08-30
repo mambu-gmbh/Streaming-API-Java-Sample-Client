@@ -57,15 +57,15 @@ public class StreamingApiClient {
 	private static final String LOST_CONNECTION_TO_STREAMING_API_MESSAGE = "Lost connection to streaming api.";
 	private static final String TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE = "Trying to reinitialize connection to streaming api.";
 
-	private String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
-	private String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
-	private String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=1&batch_limit=1";
-	private String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
-	private String CONTENT_TYPE = "Content-Type";
-	private String CONTENT_TYPE_VALUE = "application/json";
+	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
+	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
+	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=1&batch_limit=1";
+	private static String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
+	private static String CONTENT_TYPE = "Content-Type";
+	private static String CONTENT_TYPE_VALUE = "application/json";
 
-	private String API_KEY = "apikey";
-	private String MAMBU_STREAM_ID_HEADER_FIELD = "X-Mambu-StreamId";
+	private static String API_KEY = "apikey";
+	private static String MAMBU_STREAM_ID_HEADER_FIELD = "X-Mambu-StreamId";
 
 	private Gson gson;
 
@@ -109,7 +109,7 @@ public class StreamingApiClient {
 	/**
 	 * Consume events of based on a subscription.
 	 * When the connection to streaming api is lost, the connection is reinitialized if the monitor approves.
-	 * Info: the connection to streaming api can be lost when the streaming api is restarted during the deployment process.
+	 * Info: The connection to streaming api can be lost when the streaming api events store closes the stream because the stream timeout is reached or due to unpredictable network events.
 	 *
 	 * @param subscriptionId  subscription id
 	 * @param streamingApiKey Streaming api key used to for authentication.
@@ -136,7 +136,6 @@ public class StreamingApiClient {
 							if (!isCommitCursorSuccessful(response)) {
 								throw new CommitCursorException("Error while committing cursor.");
 							}
-							out.println("Cursor committed. Response status code: " + response.getStatusCode());
 						}
 					}
 				}
