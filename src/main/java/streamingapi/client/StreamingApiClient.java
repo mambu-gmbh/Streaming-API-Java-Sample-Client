@@ -1,7 +1,6 @@
 package streamingapi.client;
 
 import static java.lang.String.format;
-import static java.lang.System.out;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static org.apache.http.HttpStatus.SC_CREATED;
@@ -54,12 +53,14 @@ public class StreamingApiClient {
 	private final static Logger LOGGER = Logger.getLogger(StreamingApiClient.class.getName());
 
 	private static final int TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS = 2000;
+
+	private static final String SUCCESSFULLY_INITIALIZED_CONNECTION_TO_STREAMING_API = "Successfully initialized connection to streaming api.";
 	private static final String LOST_CONNECTION_TO_STREAMING_API_MESSAGE = "Lost connection to streaming api.";
 	private static final String TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE = "Trying to reinitialize connection to streaming api.";
 
 	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
 	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
-	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=1&batch_limit=1";
+	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=10&batch_limit=1";
 	private static String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
 	private static String CONTENT_TYPE = "Content-Type";
 	private static String CONTENT_TYPE_VALUE = "application/json";
@@ -119,6 +120,9 @@ public class StreamingApiClient {
 		while (monitor.shouldContinue()) {
 			try {
 				URLConnection connection = createConnection(subscriptionId, streamingApiKey);
+
+				LOGGER.info(SUCCESSFULLY_INITIALIZED_CONNECTION_TO_STREAMING_API);
+
 				String streamId = connection.getHeaderField(MAMBU_STREAM_ID_HEADER_FIELD);
 
 				try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
@@ -140,6 +144,7 @@ public class StreamingApiClient {
 					}
 				}
 			} catch (Exception e) {
+
 				LOGGER.warning(LOST_CONNECTION_TO_STREAMING_API_MESSAGE);
 				Thread.sleep(TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS);
 			}
