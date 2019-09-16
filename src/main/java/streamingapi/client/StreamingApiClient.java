@@ -15,6 +15,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.logging.Logger;
 
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
@@ -57,6 +58,7 @@ public class StreamingApiClient {
 	private static final String SUCCESSFULLY_INITIALIZED_CONNECTION_TO_STREAMING_API = "Successfully initialized connection to streaming api.";
 	private static final String LOST_CONNECTION_TO_STREAMING_API_MESSAGE = "Lost connection to streaming api.";
 	private static final String TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE = "Trying to reinitialize connection to streaming api.";
+	private static final String SLASH = "/";
 
 	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
 	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
@@ -106,7 +108,6 @@ public class StreamingApiClient {
 		return getSubscription(response);
 	}
 
-
 	/**
 	 * Consume events of based on a subscription.
 	 * When the connection to streaming api is lost, the connection is reinitialized if the monitor approves.
@@ -152,6 +153,18 @@ public class StreamingApiClient {
 		}
 	}
 
+	/**
+	 * Deletes existing subscription
+	 *
+	 * @param subscriptionId the id of the subscription to be deleted
+	 * @return the response of the operation
+	 */
+	public Response deleteSubscription(String subscriptionId, String streamingApiKey) {
+
+		HttpDelete httpDelete = buildSubscriptionHttpDelete(subscriptionId, streamingApiKey);
+
+		return client.executeRequest(httpDelete);
+	}
 
 	private URLConnection createConnection(String subscriptionId, String streamingApiKey) throws IOException {
 
@@ -178,7 +191,6 @@ public class StreamingApiClient {
 		httpPost.setHeader(API_KEY, streamingApiKey);
 		return httpPost;
 	}
-
 
 	private HttpPost buildSubscriptionHttpPost(Subscription subscription, String streamingApiKey) throws UnsupportedEncodingException {
 
@@ -218,5 +230,17 @@ public class StreamingApiClient {
 	private boolean isCreateSubscriptionSuccessful(Response response) {
 
 		return response.getStatusCode() == SC_OK || response.getStatusCode() == SC_CREATED;
+	}
+
+	private HttpDelete buildSubscriptionHttpDelete(String subscriptionId, String streamingApiKey) {
+
+		HttpDelete httpDelete = new HttpDelete(buildDeleteSubscriptionEndpoint(subscriptionId));
+		httpDelete.setHeader(API_KEY, streamingApiKey);
+		return httpDelete;
+	}
+
+	private String buildDeleteSubscriptionEndpoint(String subscriptionId) {
+
+		return SUBSCRIPTION_ENDPOINT + SLASH + subscriptionId;
 	}
 }
