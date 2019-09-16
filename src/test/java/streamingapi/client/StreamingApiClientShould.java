@@ -60,7 +60,7 @@ public class StreamingApiClientShould {
 	@Test
 	public void create_subscription() throws IOException {
 
-		Subscription subscription = getSubscription();
+		Subscription subscription = buildSubscription();
 
 		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
@@ -83,7 +83,7 @@ public class StreamingApiClientShould {
 	@Test
 	public void get_success_status_when_delete_subscription() throws IOException {
 
-		Subscription subscription = getSubscription();
+		Subscription subscription = buildSubscription();
 
 		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
@@ -105,14 +105,14 @@ public class StreamingApiClientShould {
 	@Test
 	public void consume_events() throws Exception {
 
-		Subscription subscription = getSubscription();
+		Subscription subscription = buildSubscription();
 
 		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
 		client.consumeEvents(createdSubscription.getId(), STREAMING_API_KEY);
 	}
 
-	private Subscription getSubscription() {
+	private Subscription buildSubscription() {
 
 		List<String> topics = asList(CLIENT_CREATED_TOPIC, DATA_ACCESS_STATE_CHANGED_TOPIC);
 		return new Subscription(topics, TEST_APPLICATION_NAME);
