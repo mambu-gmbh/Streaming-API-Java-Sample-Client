@@ -3,6 +3,7 @@ package streamingapi.client;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
+import static java.util.logging.Level.WARNING;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.http.HttpStatus.SC_OK;
@@ -51,24 +52,21 @@ import streamingapi.client.processor.EventsProcessor;
  */
 public class StreamingApiClient {
 
-	private final static Logger LOGGER = Logger.getLogger(StreamingApiClient.class.getName());
+	private final static Logger LOGGER = LoggerFactory.getLogger(StreamingApiClient.class.getName());
 
-	private static final int TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS = 2000;
+	private static final int COMMIT_TIMEOUT = 60; // seconds
 
-	private static final String SUCCESSFULLY_INITIALIZED_CONNECTION_TO_STREAMING_API = "Successfully initialized connection to streaming api.";
-	private static final String LOST_CONNECTION_TO_STREAMING_API_MESSAGE = "Lost connection to streaming api.";
-	private static final String TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE = "Trying to reinitialize connection to streaming api.";
-	private static final String SLASH = "/";
-
-	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
+	private static String MAMBU_ENDPOINT = "https://mariusr.dev.mambucloud.com";
 	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
-	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=10&batch_limit=1";
+	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=10&batch_limit=1&commit_timeout=" + COMMIT_TIMEOUT;
 	private static String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
 	private static String CONTENT_TYPE = "Content-Type";
 	private static String CONTENT_TYPE_VALUE = "application/json";
 
 	private static String API_KEY = "apikey";
 	private static String MAMBU_STREAM_ID_HEADER_FIELD = "X-Mambu-StreamId";
+
+	private static final String SLASH = "/";
 
 	private Gson gson;
 
@@ -122,7 +120,7 @@ public class StreamingApiClient {
 			try {
 				URLConnection connection = createConnection(subscriptionId, streamingApiKey);
 
-				LOGGER.info(SUCCESSFULLY_INITIALIZED_CONNECTION_TO_STREAMING_API);
+				LOGGER.info("Successfully initialized connection to streaming api.");
 
 				String streamId = connection.getHeaderField(MAMBU_STREAM_ID_HEADER_FIELD);
 
@@ -138,18 +136,24 @@ public class StreamingApiClient {
 
 							processor.process(batch.getEvents());
 							Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
+
 							if (!isCommitCursorSuccessful(response)) {
-								throw new CommitCursorException("Error while committing cursor.");
+								String msg = format("Error while committing cursor. Status code: %d. Error: %s", response.getStatusCode(), response.getResponse());
+								throw new CommitCursorException(msg);
 							}
 						}
 					}
 				}
 			} catch (Exception e) {
 
-				LOGGER.warning(LOST_CONNECTION_TO_STREAMING_API_MESSAGE);
-				Thread.sleep(TIMEOUT_UNTIL_RETRY_CONNECTION_IN_MILLIS);
+				LOGGER.log(WARNING, "Error while processing events ", e);
+
+				int retryInterval = COMMIT_TIMEOUT + 5; // seconds
+				LOGGER.log(WARNING, format("Sleeping %d seconds before retrying", retryInterval));
+				Thread.sleep(retryInterval * 1000);
 			}
-			LOGGER.warning(TRYING_TO_REINITIALIZE_CONNECTION_TO_STREAMING_API_MESSAGE);
+
+			LOGGER.warning("Trying to reinitialize connection to streaming api.");
 		}
 	}
 
