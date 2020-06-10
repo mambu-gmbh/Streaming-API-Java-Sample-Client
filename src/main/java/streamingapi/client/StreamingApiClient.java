@@ -56,9 +56,9 @@ public class StreamingApiClient {
 
 	private static final int COMMIT_TIMEOUT = 60; // seconds
 
-	private static String MAMBU_ENDPOINT = "https://mariusr.dev.mambucloud.com";
+	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
 	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
-	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=10&batch_limit=1&commit_timeout=" + COMMIT_TIMEOUT;
+	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=5&batch_limit=1&commit_timeout=" + COMMIT_TIMEOUT;
 	private static String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
 	private static String CONTENT_TYPE = "Content-Type";
 	private static String CONTENT_TYPE_VALUE = "application/json";
@@ -129,6 +129,8 @@ public class StreamingApiClient {
 					String inputLine;
 
 					while ((inputLine = reader.readLine()) != null) {
+
+						LOGGER.info(inputLine);
 
 						Batch batch = gson.fromJson(inputLine, Batch.class);
 
