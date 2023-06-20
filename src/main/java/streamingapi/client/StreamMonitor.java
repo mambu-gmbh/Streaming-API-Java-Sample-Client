@@ -2,8 +2,6 @@ package streamingapi.client;
 
 /**
  * Monitor used to stop the execution or to check if the execution should continue.
- *
- * @author dancojocaru
  */
 public class StreamMonitor {
 

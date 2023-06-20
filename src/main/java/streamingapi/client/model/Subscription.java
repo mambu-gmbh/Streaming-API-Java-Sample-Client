@@ -1,5 +1,8 @@
 package streamingapi.client.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -10,15 +13,16 @@ import java.util.List;
 public class Subscription {
 
 	private String id;
+	@JsonProperty("owning_application")
 	private String owningApplication;
+	@JsonProperty("event_types")
 	private List<String> eventTypes;
+	@JsonProperty("consumer_group")
+	private String consumerGroup;
+	@JsonProperty("read_from")
 	private String readFrom = "end";
-
-	public Subscription(List<String> eventTypes, String owningApplication) {
-
-		this.eventTypes = eventTypes;
-		this.owningApplication = owningApplication;
-	}
+	@JsonProperty("created_at")
+	private Instant createdAt;
 
 	public String getId() {
 
@@ -58,5 +62,21 @@ public class Subscription {
 	public void setReadFrom(String readFrom) {
 
 		this.readFrom = readFrom;
+	}
+
+	public String getConsumerGroup() {
+		return consumerGroup;
+	}
+
+	public void setConsumerGroup(String consumerGroup) {
+		this.consumerGroup = consumerGroup;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
 	}
 }

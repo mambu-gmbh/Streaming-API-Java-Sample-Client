@@ -2,23 +2,21 @@ package streamingapi.client;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.text.IsEmptyString.isEmptyOrNullString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import streamingapi.client.helper.EventModelObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 
 import streamingapi.client.exception.SubscriptionException;
 import streamingapi.client.http.HttpClient;
@@ -35,8 +33,6 @@ public class StreamingApiClientShould {
 	private static final int HTTP_NO_CONTENT_SUCCESS = 204;
 	private static final int HTTP_NOT_FOUND = 404;
 
-	private Gson gson;
-
 	private HttpClient httpClient;
 
 	private StreamingApiClient client;
@@ -45,24 +41,21 @@ public class StreamingApiClientShould {
 
 	private StreamMonitor monitor;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 
-		gson = new GsonBuilder()
-				.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-				.create();
 		httpClient = new HttpClient();
 		processor = new PrintEventsProcessor();
 		monitor = new StreamMonitor();
-		client = new StreamingApiClient(httpClient, gson, processor, monitor);
+		client = new StreamingApiClient(httpClient, new EventModelObjectMapper(), processor, monitor);
 	}
 
 	@Test
 	public void create_subscription() throws IOException {
 
-		Subscription subscription = buildSubscription();
+		final Subscription subscription = buildSubscription();
 
-		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
+		final Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
 		assertThat(createdSubscription, notNullValue());
 		assertThat(createdSubscription.getId(), not(isEmptyOrNullString()));
@@ -71,23 +64,25 @@ public class StreamingApiClientShould {
 		assertThat(createdSubscription.getEventTypes(), containsInAnyOrder(CLIENT_CREATED_TOPIC, DATA_ACCESS_STATE_CHANGED_TOPIC));
 	}
 
-	@Test(expected = SubscriptionException.class)
-	public void throw_subscription_exception_when_creation_fails() throws IOException {
+	@Test
+	public void throw_subscription_exception_when_creation_fails() {
 
-		List<String> topics = singletonList("invalid_topic");
-		Subscription subscription = new Subscription(topics, TEST_APPLICATION_NAME);
+		final List<String> topics = singletonList("invalid_topic");
+		final Subscription subscription = new Subscription();
+		subscription.setEventTypes(topics);
+		subscription.setOwningApplication(TEST_APPLICATION_NAME);
 
-		client.createSubscription(subscription, STREAMING_API_KEY);
+		assertThrows(SubscriptionException.class, () -> client.createSubscription(subscription, STREAMING_API_KEY));
 	}
 
 	@Test
 	public void get_success_status_when_delete_subscription() throws IOException {
 
-		Subscription subscription = buildSubscription();
+		final Subscription subscription = buildSubscription();
 
-		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
+		final Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
-		Response response = client.deleteSubscription(createdSubscription.getId(), STREAMING_API_KEY);
+		final Response response = client.deleteSubscription(createdSubscription.getId(), STREAMING_API_KEY);
 
 		assertEquals(HTTP_NO_CONTENT_SUCCESS, response.getStatusCode());
 	}
@@ -95,9 +90,9 @@ public class StreamingApiClientShould {
 	@Test
 	public void get_not_found_status_when_deletion_fails() {
 
-		String invalidId = "AAA";
+		final String invalidId = "AAA";
 
-		Response response = client.deleteSubscription(invalidId, STREAMING_API_KEY);
+		final Response response = client.deleteSubscription(invalidId, STREAMING_API_KEY);
 
 		assertEquals(HTTP_NOT_FOUND, response.getStatusCode());
 	}
@@ -105,17 +100,20 @@ public class StreamingApiClientShould {
 	@Test
 	public void consume_events() throws Exception {
 
-		Subscription subscription = buildSubscription();
+		final Subscription subscription = buildSubscription();
 
-		Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
+		final Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
 		client.consumeEvents(createdSubscription.getId(), STREAMING_API_KEY);
 	}
 
 	private Subscription buildSubscription() {
 
-		List<String> topics = asList(CLIENT_CREATED_TOPIC, DATA_ACCESS_STATE_CHANGED_TOPIC);
-		return new Subscription(topics, TEST_APPLICATION_NAME);
+		final List<String> topics = asList(CLIENT_CREATED_TOPIC, DATA_ACCESS_STATE_CHANGED_TOPIC);
+		final Subscription subscription = new Subscription();
+		subscription.setEventTypes(topics);
+		subscription.setOwningApplication(TEST_APPLICATION_NAME);
+		return subscription;
 	}
 
 }

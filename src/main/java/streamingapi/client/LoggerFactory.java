@@ -6,8 +6,6 @@ import java.util.logging.Logger;
 
 /**
  * Logger factory
- *
- * @author mropotica
  */
 public class LoggerFactory {
 

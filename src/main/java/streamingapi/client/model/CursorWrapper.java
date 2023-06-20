@@ -11,6 +11,9 @@ public class CursorWrapper {
 
 	private List<Cursor> items;
 
+	public CursorWrapper() {
+	}
+
 	public CursorWrapper(List<Cursor> items) {
 
 		this.items = items;

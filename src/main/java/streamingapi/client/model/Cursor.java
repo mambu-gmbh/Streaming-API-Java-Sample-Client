@@ -1,24 +1,18 @@
 package streamingapi.client.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Model for streaming cursor that contains data about the offset of the events.
- *
- * @author dancojocaru
  */
 public class Cursor {
 
+	@JsonProperty("event_type")
 	private String eventType;
+	@JsonProperty("cursor_token")
 	private String cursorToken;
 	private String offset;
 	private String partition;
-
-	public Cursor(String eventType, String cursorToken, String offset, String partition) {
-
-		this.eventType = eventType;
-		this.cursorToken = cursorToken;
-		this.offset = offset;
-		this.partition = partition;
-	}
 
 	public String getEventType() {
 
