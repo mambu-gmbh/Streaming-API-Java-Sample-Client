@@ -1,22 +1,22 @@
 package streamingapi.client;
 
-import streamingapi.client.helper.EventModelObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import streamingapi.client.helper.EventModelObjectMapper;
+import streamingapi.client.helper.JsonExtractorHelper;
 import streamingapi.client.model.Batch;
 import streamingapi.client.model.Cursor;
 import streamingapi.client.model.Event;
 import streamingapi.client.model.Metadata;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- *
+ * Test class for validating the event stream model and json
  */
 public class StreamingJsonHandlingShould {
 
@@ -63,13 +63,9 @@ public class StreamingJsonHandlingShould {
 
         final String invalidMessage = "{\"cursor\":{\"partition\":\"1\",\"offset\":\"001-0001-000000000000035653\",\"event_type\":\"mrn.event.obkesp.streamingapi.cards_authorisation_hold_reversed\",\"cursor_token\":\"cef97ac7-3b5b-465f-b780-2b6cfa509111\"},\"events\":[SJTJGEECAFWNJJBPSUVAVEYPSOKTOFCVMHLRKREDEUOCJZMVHHGOZTAHGLNJGNIAZSFQNVCZUPRIAEYTXVWLKIZPSVNLOQRZIQEKBNHVXIJAHVAHRSAXMMVGSHIDOFQTYZQESAOLAFVZSRUOZUXTRLOLISQCMWRDRZNUGXPKECERDFVZWHGSFIHEPMUEBSEDTKJYVHHTIWYVCQEXUZUPTXPQZYATUHDVREXBTKOECVXESADSJJMUZYVKWARGZRDBWYWBNFGUQTIGRIKVIPHYFZHWBYNVXGHMBOEQCTSOTOJRXJEVWTNQXCRLBAEOYOCEOAZEYXZCZUFNDCGGKBNEBSHYJLBJGAYPILUIKOQJBCRAJCZZBNFYEPDVCDCJFSJSFYZQWPXUXWKVCEBFCCRIWQTPZDMWUAHLGREGFZATEADJKKASSCAQKIAXJWMUJCUUDJQZJSOBMUHADVDZJVQVLNUXBHEYVRKDBCGJRDORSERFJQXPHPKLLEASUVYKWXWHNOIWFLLWPQKLOKUFPOFNLJPDOAMXODAPKUARVIDWGZPTUGGHAIQPIWTPAHFJIUTEXGXARRCWCPILDGNBDUWDSLPYSEIMWFEYNPXNTXZBIKUZZPFBMOQQZGRTRHDYTTXYNGLPVLNBVWAXJIUQKAWSFKRPJXUBBKJHGSYMPUCNWTHSNAFKCYSFKTRQZGZCCTCLZQHQBLUFAULGUCHLFCOBTGVXQPRFCQESXQFJTZIMULKHOUKIZHKOJCJPPBPVERZVRDHYZKDKBCWGNFCYALCNQQMTFQTGGSPCDHNQTXFHLXHXASBCXSWTHBJHVUIAHCKFIYNASZZRNYKKJSLBRCLMZRXNCQCYKFFWKSFKUVELDAFGVUCDFZPQQFWIVGVOJPJLILFSGAGUAJZTRZFUCEOBNOWDRAIYJFXKSIBUCYKJCNQVXBIRTVRPURHHHYLKPEFWZHPFJWKWUWSLTZIBJOINORABYUXWVARCOYIUXPEOBWIFFUIHEHJZHKYBJEADXCWM],\"info\":{\"debug\":\"Stream started\"}}";
 
-        final String regex = "\"cursor\"\\s*:\\s*(\\{.*?\\})";
-        final Pattern pattern = Pattern.compile(regex);
-        final Matcher matcher = pattern.matcher(invalidMessage);
-
-        assertTrue(matcher.find());
-        final String cursorInfo = matcher.group(1);
-        final Cursor actualCursor = eventModelObjectMapper.deserialize(cursorInfo, Cursor.class);
+        final Optional<String> optionalCursorInfo = JsonExtractorHelper.extractCursorInfoFrom(invalidMessage);
+        assertTrue(optionalCursorInfo.isPresent());
+        final Cursor actualCursor = eventModelObjectMapper.deserialize(optionalCursorInfo.get(), Cursor.class);
 
         assertNotNull(actualCursor);
         assertEquals("cef97ac7-3b5b-465f-b780-2b6cfa509111", actualCursor.getCursorToken());

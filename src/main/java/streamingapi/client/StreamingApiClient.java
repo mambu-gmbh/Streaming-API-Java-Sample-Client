@@ -3,6 +3,7 @@ package streamingapi.client;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
+import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
@@ -14,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.apache.http.client.methods.HttpDelete;
@@ -25,6 +27,7 @@ import com.google.gson.Gson;
 import streamingapi.client.exception.CommitCursorException;
 import streamingapi.client.exception.SubscriptionException;
 import streamingapi.client.helper.EventModelObjectMapper;
+import streamingapi.client.helper.JsonExtractorHelper;
 import streamingapi.client.http.HttpClient;
 import streamingapi.client.http.Response;
 import streamingapi.client.model.Batch;
@@ -132,17 +135,21 @@ public class StreamingApiClient {
 
 						LOGGER.info(inputLine);
 
-						Batch batch = eventModelObjectMapper.deserialize(inputLine, Batch.class);
+						try {
+							final Batch batch = eventModelObjectMapper.deserialize(inputLine, Batch.class);
 
-						if (nonNull(batch) && nonNull(batch.getEvents())) {
+							if (nonNull(batch) && nonNull(batch.getEvents())) {
 
-							processor.process(batch.getEvents());
-							Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
-
-							if (!isCommitCursorSuccessful(response)) {
-								String msg = format("Error while committing cursor. Status code: %d. Error: %s", response.getStatusCode(), response.getResponse());
-								throw new CommitCursorException(msg);
+								processor.process(batch.getEvents());
+								commitBatchCursor(subscriptionId, streamingApiKey, streamId, batch.getCursor());
 							}
+						} catch (IllegalStateException jsonException) {
+
+							LOGGER.log(SEVERE, "The received JSON is invalid ", jsonException);
+							final Cursor cursor = JsonExtractorHelper.extractCursorInfoFrom(inputLine)
+									.map(cursorInfo -> eventModelObjectMapper.deserialize(cursorInfo, Cursor.class))
+									.orElseThrow(() -> new IllegalStateException("Could not extract the cursor info from the received JSON. Please check!"));
+							commitBatchCursor(subscriptionId, streamingApiKey, streamId, cursor);
 						}
 					}
 				}
@@ -156,6 +163,15 @@ public class StreamingApiClient {
 			}
 
 			LOGGER.warning("Trying to reinitialize connection to streaming api.");
+		}
+	}
+
+	private void commitBatchCursor(String subscriptionId, String streamingApiKey, String streamId, Cursor cursor) throws Exception {
+		Response response = commitCursor(cursor, streamId, subscriptionId, streamingApiKey);
+
+		if (!isCommitCursorSuccessful(response)) {
+			String msg = format("Error while committing cursor. Status code: %d. Error: %s", response.getStatusCode(), response.getResponse());
+			throw new CommitCursorException(msg);
 		}
 	}
 
