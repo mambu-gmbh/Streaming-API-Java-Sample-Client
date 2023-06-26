@@ -51,7 +51,7 @@ public class StreamingApiClientShould {
 	}
 
 	@Test
-	public void create_subscription() throws IOException {
+	public void createSubscription() throws IOException {
 
 		final Subscription subscription = buildSubscription();
 
@@ -65,7 +65,7 @@ public class StreamingApiClientShould {
 	}
 
 	@Test
-	public void throw_subscription_exception_when_creation_fails() {
+	public void throwSubscriptionExceptionWhenCreationFails() {
 
 		final List<String> topics = singletonList("invalid_topic");
 		final Subscription subscription = new Subscription();
@@ -76,7 +76,7 @@ public class StreamingApiClientShould {
 	}
 
 	@Test
-	public void get_success_status_when_delete_subscription() throws IOException {
+	public void getSuccessStatusWhenDeleteSubscription() throws IOException {
 
 		final Subscription subscription = buildSubscription();
 
@@ -88,7 +88,7 @@ public class StreamingApiClientShould {
 	}
 
 	@Test
-	public void get_not_found_status_when_deletion_fails() {
+	public void getNotFoundStatusWhenDeletionFails() {
 
 		final String invalidId = "AAA";
 
@@ -98,13 +98,23 @@ public class StreamingApiClientShould {
 	}
 
 	@Test
-	public void consume_events() throws Exception {
+	public void consumeEventsWithPoisonMessageHandleAbleToCommitTheCursor() throws Exception {
 
 		final Subscription subscription = buildSubscription();
 
 		final Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
 
 		client.consumeEvents(createdSubscription.getId(), STREAMING_API_KEY);
+	}
+
+	@Test
+	public void consumeEventsWithPoisonMessageHandleUnableToCommitTheCursor() throws Exception {
+
+		final Subscription subscription = buildSubscription();
+
+		final Subscription createdSubscription = client.createSubscription(subscription, STREAMING_API_KEY);
+
+		assertThrows(IllegalStateException.class, () -> client.consumeEvents(createdSubscription.getId(), STREAMING_API_KEY));
 	}
 
 	private Subscription buildSubscription() {
