@@ -7,6 +7,7 @@ import streamingapi.client.helper.JsonExtractorHelper;
 import streamingapi.client.model.Batch;
 import streamingapi.client.model.Cursor;
 import streamingapi.client.model.Event;
+import streamingapi.client.model.Info;
 import streamingapi.client.model.Metadata;
 
 import java.util.Optional;
@@ -55,6 +56,9 @@ public class StreamingJsonHandlingShould {
         assertEquals("DATA", metadata.getCategory());
         assertEquals("d0c69543-e5c3-4180-9ec4-733103694c26", metadata.getEid());
         assertEquals("application/json; charset=UTF-8", metadata.getContentType());
+        final Info info = validObject.getInfo();
+        assertNotNull(info);
+        assertEquals("Stream started", info.getDebug());
 
     }
 
