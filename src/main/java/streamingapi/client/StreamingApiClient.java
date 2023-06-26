@@ -3,6 +3,7 @@ package streamingapi.client;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
+import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
@@ -20,10 +21,10 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
-import com.google.gson.Gson;
-
 import streamingapi.client.exception.CommitCursorException;
 import streamingapi.client.exception.SubscriptionException;
+import streamingapi.client.helper.EventModelObjectMapper;
+import streamingapi.client.helper.JsonExtractorHelper;
 import streamingapi.client.http.HttpClient;
 import streamingapi.client.http.Response;
 import streamingapi.client.model.Batch;
@@ -48,7 +49,6 @@ import streamingapi.client.processor.EventsProcessor;
  * </li>
  * </ul>
  *
- * @author dancojocaru
  */
 public class StreamingApiClient {
 
@@ -56,7 +56,7 @@ public class StreamingApiClient {
 
 	private static final int COMMIT_TIMEOUT = 60; // seconds
 
-	private static String MAMBU_ENDPOINT = "http://demo_tenant.localhost:8000";
+	private static String MAMBU_ENDPOINT = "https://demotenant.dev.mambucloud.com";
 	private static String SUBSCRIPTION_ENDPOINT = MAMBU_ENDPOINT + "/api/v1/subscriptions";
 	private static String EVENTS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/events?batch_flush_timeout=5&batch_limit=1&commit_timeout=" + COMMIT_TIMEOUT;
 	private static String CURSORS_ENDPOINT = SUBSCRIPTION_ENDPOINT + "/%s/cursors";
@@ -68,7 +68,7 @@ public class StreamingApiClient {
 
 	private static final String SLASH = "/";
 
-	private Gson gson;
+	private EventModelObjectMapper eventModelObjectMapper;
 
 	private HttpClient client;
 
@@ -78,14 +78,14 @@ public class StreamingApiClient {
 
 	/**
 	 * @param client    Http client used to make http requests.
-	 * @param gson      Gson instance used to serialize/deserialize request and responses.
+	 * @param eventModelObjectMapper      Jackson instance used to serialize/deserialize request and responses.
 	 * @param processor A processor that handles the received events when listening to a stream.
 	 * @param monitor   execution monitor
 	 */
-	public StreamingApiClient(HttpClient client, Gson gson, EventsProcessor processor, StreamMonitor monitor) {
+	public StreamingApiClient(HttpClient client, EventModelObjectMapper eventModelObjectMapper, EventsProcessor processor, StreamMonitor monitor) {
 
 		this.client = client;
-		this.gson = gson;
+		this.eventModelObjectMapper = eventModelObjectMapper;
 		this.processor = processor;
 		this.monitor = monitor;
 	}
@@ -132,17 +132,21 @@ public class StreamingApiClient {
 
 						LOGGER.info(inputLine);
 
-						Batch batch = gson.fromJson(inputLine, Batch.class);
+						try {
+							final Batch batch = eventModelObjectMapper.deserialize(inputLine, Batch.class);
 
-						if (nonNull(batch) && nonNull(batch.getEvents())) {
+							if (nonNull(batch) && nonNull(batch.getEvents())) {
 
-							processor.process(batch.getEvents());
-							Response response = commitCursor(batch.getCursor(), streamId, subscriptionId, streamingApiKey);
-
-							if (!isCommitCursorSuccessful(response)) {
-								String msg = format("Error while committing cursor. Status code: %d. Error: %s", response.getStatusCode(), response.getResponse());
-								throw new CommitCursorException(msg);
+								processor.process(batch.getEvents());
+								commitBatchCursor(subscriptionId, streamingApiKey, streamId, batch.getCursor());
 							}
+						} catch (IllegalStateException jsonException) {
+
+							LOGGER.log(SEVERE, "The received JSON is invalid ", jsonException);
+							final Cursor cursor = JsonExtractorHelper.extractCursorInfoFrom(inputLine)
+									.map(cursorInfo -> eventModelObjectMapper.deserialize(cursorInfo, Cursor.class))
+									.orElseThrow(() -> new IllegalStateException("Could not extract the cursor info from the received JSON. Please check!"));
+							commitBatchCursor(subscriptionId, streamingApiKey, streamId, cursor);
 						}
 					}
 				}
@@ -156,6 +160,15 @@ public class StreamingApiClient {
 			}
 
 			LOGGER.warning("Trying to reinitialize connection to streaming api.");
+		}
+	}
+
+	private void commitBatchCursor(String subscriptionId, String streamingApiKey, String streamId, Cursor cursor) throws Exception {
+		Response response = commitCursor(cursor, streamId, subscriptionId, streamingApiKey);
+
+		if (!isCommitCursorSuccessful(response)) {
+			String msg = format("Error while committing cursor. Status code: %d. Error: %s", response.getStatusCode(), response.getResponse());
+			throw new CommitCursorException(msg);
 		}
 	}
 
@@ -184,7 +197,7 @@ public class StreamingApiClient {
 			throws Exception {
 
 		HttpPost httpPost = createCursorsHttpPost(streamId, subscriptionId, streamingApiKey);
-		String jsonBody = gson.toJson(new CursorWrapper(singletonList(cursor)));
+		String jsonBody = eventModelObjectMapper.serialize(new CursorWrapper(singletonList(cursor)));
 		httpPost.setEntity(new StringEntity(jsonBody));
 		return client.executeRequest(httpPost);
 	}
@@ -208,7 +221,7 @@ public class StreamingApiClient {
 
 	private StringEntity toStringEntity(Subscription subscription) throws UnsupportedEncodingException {
 
-		String jsonBody = gson.toJson(subscription);
+		String jsonBody = eventModelObjectMapper.serialize(subscription);
 		return new StringEntity(jsonBody);
 	}
 
@@ -225,7 +238,7 @@ public class StreamingApiClient {
 		if (!isCreateSubscriptionSuccessful(response)) {
 			throw new SubscriptionException(response.getResponse());
 		}
-		return gson.fromJson(response.getResponse(), Subscription.class);
+		return eventModelObjectMapper.deserialize(response.getResponse(), Subscription.class);
 	}
 
 	private boolean isCommitCursorSuccessful(Response response) {

@@ -1,5 +1,7 @@
 package streamingapi.client.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Model for metadata of an event.
  *
@@ -8,19 +10,13 @@ package streamingapi.client.model;
 public class Metadata {
 
 	private String eid;
+	@JsonProperty("occurred_at")
 	private String occurredAt;
+	@JsonProperty("content_type")
 	private String contentType;
 	private String category;
+	@JsonProperty("event_type")
 	private String eventType;
-
-	public Metadata(String eid, String occurredAt, String contentType, String category, String eventType) {
-
-		this.eid = eid;
-		this.occurredAt = occurredAt;
-		this.contentType = contentType;
-		this.category = category;
-		this.eventType = eventType;
-	}
 
 	public String getEid() {
 

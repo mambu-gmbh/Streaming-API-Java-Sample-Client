@@ -4,19 +4,12 @@ import java.util.List;
 
 /**
  * Model for a streaming batch of events received by the client
- *
- * @author dancojocaru
  */
 public class Batch {
 
 	private Cursor cursor;
 	private List<Event> events;
-
-	public Batch(Cursor cursor, List<Event> events) {
-
-		this.cursor = cursor;
-		this.events = events;
-	}
+	private Info info;
 
 	public Cursor getCursor() {
 
@@ -36,5 +29,13 @@ public class Batch {
 	public void setEvents(List<Event> events) {
 
 		this.events = events;
+	}
+
+	public Info getInfo() {
+		return info;
+	}
+
+	public void setInfo(Info info) {
+		this.info = info;
 	}
 }
