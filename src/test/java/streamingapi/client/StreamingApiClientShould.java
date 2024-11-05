@@ -27,7 +27,7 @@ import streamingapi.client.processor.PrintEventsProcessor;
 public class StreamingApiClientShould {
 
 	private static final String TEST_APPLICATION_NAME = "testApplication";
-	private static final String STREAMING_API_KEY = "PwI5LSrNiMjHMNM5Fhl3FkOU3FOeZLrp";
+	private static final String STREAMING_API_KEY = "to_be_replaced_with_your_own_API_consumer_key";
 	private static final String CLIENT_CREATED_TOPIC = "mrn.event.demo_tenant.streamingapi.client_created";
 	private static final String DATA_ACCESS_STATE_CHANGED_TOPIC = "mrn.event.demo_tenant.streamingapi.data_access_state_changed";
 	private static final int HTTP_NO_CONTENT_SUCCESS = 204;
